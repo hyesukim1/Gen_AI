@@ -1,42 +1,108 @@
 import torch
-import torch.nn as nn
-import torchvision.models as models
-
+from torch import nn
 import numpy as np
 import matplotlib.pyplot as plt
 
-class MyModel(nn.Module):
-    """ 사용자 정의 모델 클래스 """
+# def draw_train_image(data_loader, model, img_size):
+#     model.eval()
+#     with torch.no_grad():
+#         data_num = min(len(data_loader.dataset), 10)
+#         view_data = [data_loader.dataset[i].view(-1, 1, img_size**2).to('cpu') for i in range(data_num)]
+#
+#         f, a = plt.subplots(2, data_num, figsize=(data_num, 2))
+#         for i, x in enumerate(view_data):
+#             img = np.reshape(x.to("cpu").numpy(), (128, 128))
+#             a[0][i].imshow(img, cmap='gray')
+#             a[0][i].set_xticks(());
+#             a[0][i].set_yticks(())
+#
+#         for i, x in enumerate(view_data):
+#             encoded, decoded = model(x)
+#             img = np.reshape(decoded.to("cpu").numpy(), (128, 128))
+#             a[1][i].imshow(img, cmap='gray')
+#             a[1][i].set_xticks(());
+#             a[1][i].set_yticks(())
+#         plt.show()
 
-    def __init__(self, num_classes):
-        """
-        클래스 생성자
 
-        :param num_classes: 클래스의 개수
-        """
-        super(MyModel, self).__init__()
-        self.base_model = models.resnet18(pretrained=True)
-        in_features = self.base_model.fc.in_features
-        self.base_model.fc = nn.Linear(in_features, num_classes)
+def train(model, data_loader, criterion, optimizer, device, epochs, img_size, history_save_path, model_save_path):
+    train_history = {
+        'total_loss': [],
+        'bce_loss': [],
+        'kld_loss': [],
+        'mu_range_min': [],
+        'mu_range_max': [],
+        'logvar_range_min': [],
+        'logvar_range_max': []
+    }
+    # 학습
+    for epoch in range(1, epochs+1):
+        model.train()
 
-    def forward(self, x):
-        """
-        순전파 메서드
+        for step, x in enumerate(data_loader.dataset):
+            train_x = x.view(-1, 1, img_size**2).to(device)
+            train_y = x.view(-1, 1, img_size**2).to(device)
 
-        :param x: 입력 데이터
-        :return: 모델의 출력
-        """
-        return self.base_model(x)
+            optimizer.zero_grad()
 
-def save_model(model, filepath):
-    """ 모델을 파일에 저장하는 함수 """
-    torch.save(model.state_dict(), filepath)
+            # autoencoder 기준
+            encoded, decoded = model(train_x)
 
-def load_model(filepath, num_classes):
-    """ 파일에서 모델을 로드하는 함수 """
-    model = MyModel(num_classes)
-    model.load_state_dict(torch.load(filepath))
-    return model
+            loss = criterion(decoded, train_y)
+            loss.backward()
+            optimizer.step()
+
+            # draw_train_image(data_loader, model)
+        print('loss:', loss)
+
+        data_num = 5
+        view_data = [data_loader.dataset[i].view(-1, 1, img_size).to('cpu') for i in
+                     range(data_num)]
+
+        f, a = plt.subplots(2, data_num, figsize=(data_num, 2))
+
+        for i, x in enumerate(view_data):
+            img = np.reshape(x.to("cpu").numpy(), (128, 128))
+            a[0][i].imshow(img, cmap='gray')
+            a[0][i].set_xticks(());
+            a[0][i].set_yticks(())
+
+        for i, x in enumerate(view_data):
+            encoded, decoded = model(x)
+            img = np.reshape(decoded.to("cpu").numpy(), (128, 128))
+            a[1][i].imshow(img, cmap='gray')
+            a[1][i].set_xticks(());
+            a[1][i].set_yticks(())
+        plt.show()
+
+        # print(f"Epoch [{epoch + 1}/{epoch}], total loss: {loss.item():.4f}, bce: {bce.item():.4f}, kld: {abs(kld.item()):.4f}")
+        # print(f"Mu range: {torch.min(mu[0])} ~ {torch.max(mu[0])}, Logvar range: {torch.min(logvar[0])} ~ {torch.max(logvar[0])}")
+
+        # if (epoch + 1) % 5 == 0:
+        #     # history 저장
+        #     train_history['total_loss'].append(loss.item())
+        #             # train_history['bce_loss'].append(bce.item())
+        #             # train_history['kld_loss'].append(abs(kld.item()))
+        #             # train_history['mu_range_min'].append(torch.min(mu[0]).item())
+        #             # train_history['mu_range_max'].append(torch.max(mu[0]).item())
+        #             # train_history['logvar_range_min'].append(torch.min(logvar[0]).item())
+        #             # train_history['logvar_range_max'].append(torch.max(logvar[0]).item())
+        #
+        #             np.savetxt('D:/result/kaggle/history/'+f'train_history_epoch_{epoch + 1}.csv',
+        #                        np.column_stack((train_history['total_loss'],
+        #                                         train_history['bce_loss'],
+        #                                         train_history['kld_loss'],
+        #                                         train_history['mu_range_min'],
+        #                                         train_history['mu_range_max'],
+        #                                         train_history['logvar_range_min'],
+        #                                         train_history['logvar_range_max'])),
+        #                        delimiter=',',
+        #                        header='total_loss,bce_loss,kld_loss,mu_range_min,mu_range_max,logvar_range_min,logvar_range_max',
+        #                        comments='')
+        #
+        #     # 모델 저장
+        #     torch.save(model.state_dict(), model_save_path+f'epoch_{epoch}.h5')
+
 
 def evaluate_model(model, data_loader, criterion, device):
     """ 모델을 평가하는 함수 """
@@ -58,7 +124,6 @@ def evaluate_model(model, data_loader, criterion, device):
     average_loss = total_loss / len(data_loader)
     return accuracy, average_loss
 
-# train
 '''
 학습동안 이미지 보고싶은지 여부 분기
 
@@ -77,44 +142,3 @@ def train(model, criterion, optimizer, train_loader, epoch):
         epoch_loss = running_loss / len(train_loader.dataset)
         print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {epoch_loss:.4f}')
 '''
-
-def draw_train_image(data_loader, model, device, img_size):
-    model.eval()
-    with torch.no_grad():
-        data_num = min(len(data_loader.dataset), 10)
-        view_data = [data_loader.dataset[i].view(-1, 1, img_size**2).to(device) for i in range(data_num)]
-
-        f, a = plt.subplots(2, data_num, figsize=(data_num, 2))
-        for i, x in enumerate(view_data):
-            img = np.reshape(x.to("cpu").numpy(), (128, 128))
-            a[0][i].imshow(img, cmap='gray')
-            a[0][i].set_xticks(());
-            a[0][i].set_yticks(())
-
-        for i, x in enumerate(view_data):
-            encoded, decoded = model(x)
-            img = np.reshape(decoded.to("cpu").numpy(), (128, 128))
-            a[1][i].imshow(img, cmap='gray')
-            a[1][i].set_xticks(());
-            a[1][i].set_yticks(())
-        plt.show()
-
-
-def train(model, data_loader, criterion, optimizer, device, epochs, img_size):
-    for epoch in range(1, epochs+1):
-        model.train()
-        epoch_loss = 0.0
-        for step, x in enumerate(data_loader.dataset):
-            train_x = x.view(-1, 1, img_size**2).to(device)
-            train_y = x.view(-1, 1, img_size**2).to(device)
-
-            optimizer.zero_grad()
-            encoded, decoded = model(train_x)
-
-            loss = criterion(decoded, train_y) # 스텝별로 로스를 구함
-            loss.backward()
-            optimizer.step()
-        epoch_loss /= len(data_loader)
-        print(f'Epoch [{epoch}/{epochs}], Loss: {epoch_loss:.4f}')
-
-        draw_train_image(data_loader, model, device)
