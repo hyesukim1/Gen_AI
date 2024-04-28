@@ -1,7 +1,6 @@
 {"model_type": 1,
   "epoch": 300,
   "batch_size": 64,
-  "loss": "nn.MSELoss()",
   "use_gpu": true,
   "workers": 4,
   "image_size": 128,
