@@ -1,0 +1,4 @@
+{"data_path": "D:/data/kaggle/dataset/",
+  "save_path" : ["./result/history/", "./result/model_result/"]
+
+}
