@@ -2,23 +2,25 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
+device = torch.device("cuda:0" if True else "cpu")
+print("Using Device:", device)
 
 class Flatten(nn.Module):
     def forward(self, input):
         global BATCH_SIZE
-        return input.view(input.size()[0], -1).to(self.device)
+        return input.view(input.size()[0], -1).to(device)
 
 
 class UnFlatten(nn.Module):
     def forward(self, input):
         global BATCH_SIZE
-        return input.view(-1, 128, 16, 16).to(self.device)
+        return input.view(-1, 128, 16, 16).to(device)
 
 
 class VAE(nn.Module):
-    def __init__(self, device, h_dim=128*16*16, z_dim=64):
+    def __init__(self, h_dim=128*16*16, z_dim=64):
         super(VAE, self).__init__()
-        self.device = device
+
 
         self.encoder = nn.Sequential(
             nn.Conv2d(1, 32, kernel_size=3, stride=2, padding=1),
@@ -33,10 +35,10 @@ class VAE(nn.Module):
             Flatten()
        )
 
-        self.fc1 = nn.Linear(h_dim, z_dim).to(self.device)  # for mu right before reparameterization
-        self.fc2 = nn.Linear(h_dim, z_dim).to(self.device)  # for logvar right before reparameterization
+        self.fc1 = nn.Linear(h_dim, z_dim).to(device)  # for mu right before reparameterization
+        self.fc2 = nn.Linear(h_dim, z_dim).to(device)  # for logvar right before reparameterization
 
-        self.fc3 = nn.Linear(z_dim, h_dim).to(self.device)  # right before decoding starts
+        self.fc3 = nn.Linear(z_dim, h_dim).to(device)  # right before decoding starts
 
 
         self.decoder = nn.Sequential(
@@ -77,12 +79,6 @@ class VAE(nn.Module):
         z, mu, logvar = self.encode(x)
         z = self.decode(z)
         return z, mu, logvar
-
-
-def loss_function(recon_x, x, mu, logvar):
-    BCE = F.binary_cross_entropy(recon_x, x, reduction='sum')
-    KLD = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
-    return BCE + KLD, BCE, KLD
 
 
 

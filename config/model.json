@@ -1,4 +1,9 @@
-{"model_type": 1,
+{"model_classes": {
+  "autoencoder": "Autoencoder",
+  "vae": "VAE",
+  "dcgan": "DCGAN",
+  "stylegan": "Style_GAN",
+  "Cycle_GAN": "Cycle_GAN"},
   "epoch": 300,
   "batch_size": 64,
   "use_gpu": true,
