@@ -34,9 +34,14 @@ if __name__ == "__main__":
     data = CustomDataset(path, transform=transform)
     data_loader = DataLoader(data, batch_size=batch_size, shuffle=True)
 
-    # load model, loss
-    model = Autoencoder().to(device)
-    # model = VAE().to(device)
+    # load model
+    if model_config['model_type'] == 'autoencoder':
+        model = Autoencoder().to(device)
+    elif model_config['model_type'] == 'vae':
+        model = VAE().to(device)
+
+
+    # set loss
     optimizer = torch.optim.Adam(model.parameters(), model_config['lr'])
     criterion = nn.MSELoss()
 
