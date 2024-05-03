@@ -1,9 +1,13 @@
 import torch
 from torch import nn
+
 import torch.optim as optim
+
 from torch.utils.data import DataLoader
-from torchvision import transforms
 from torch.utils.data import Dataset
+
+from torchvision import transforms
+from torchvision.utils import make_grid
 
 import os
 from glob import glob
@@ -101,11 +105,6 @@ optimizerG = optim.Adam(netG.parameters(), lr=0.005)
 - 구분자를 이용해 생성자의 출력값 판별 후 진짜 라벨값을 기용해 G의 손실값값을 구해줌 => 손실값으로 변화도를 구하고 옵티마이저를 이용해 G의 가중치를 업데이트 시켜줌 
 '''
 
-img_list = []
-G_losses = []
-D_losses = []
-iters = 0
-epochs = 5
 
 transform = transforms.Compose([transforms.Resize((128, 128)),
                                 transforms.Grayscale(num_output_channels=1),
@@ -117,25 +116,78 @@ pth = '/media/hskim/data/practice_data/'#'D:/data/kaggle/dataset'
 data = CustomDataset(pth, transform=transform)
 data_loader = DataLoader(data, batch_size=64, shuffle=True)
 
+fixed_noise = torch.randn(64, 128, 16, 16, device=device)
+
+img_list = []
+G_losses = []
+D_losses = []
+iters = 0
+epochs = 5
+
 
 for epoch in range(epochs):
     for i, data in enumerate(data_loader, 0):
+        ### D 신경망 업데이트
         netD.zero_grad()
 
-        real_labels = torch.ones(data, 1).to(device)
-        fake_labels = torch.zeros(data, 1).to(device)
+        # real_labels = torch.ones(data.size()[0], 1).to(device) # 배치 데이터 사이즈 만큼 라벨을 채워야함
+        # fake_labels = torch.zeros(data.size()[0], 1).to(device)
 
         real_data = data.to(device)
         b_size = real_data.size(0)
 
-        output = netD(real_data).view(-1)
-        errD_real = criterion(output, real_labels)
+
+        outputD_real = netD(real_data).view(-1) # netD에 통과
+        print('outputD_real', outputD_real.size())
+
+        real_labels = torch.full((outputD_real.size(0),), 1.,
+                                 dtype=torch.float, device=device)
+        print('real_labels', real_labels.size())
+
+        fake_labels = torch.full((outputD_real.size(0),), 0.,
+                                 dtype=torch.float, device=device)
+
+
+        errD_real = criterion(outputD_real, real_labels)
         errD_real.backward()
-        D_x = output.mean().item()
+        D_x = outputD_real.mean().item()
 
-        noise = torch.randn(b_size, 64, 1, 1, device=device)
+        # 가짜 데이터 학습
+        noise = torch.randn(64, 128, 16, 16, device=device)
 
-        fake = netG(noise)
-        output = netD(fake.detach()).view(-1)
+        fake_data = netG(noise)
+        output = netD(fake_data.detach()).view(-1)
+        errD_fake = criterion(output, fake_labels)
+        errD_fake.backward()
+        D_G_z1 = output.mean().item()
+
+        errD = errD_real+errD_fake
+        optimizerD.step()
+
+        ### G 신경망 업데이트
+        netG.zero_grad()
+
+        outputD_fake = netD(fake_data).view(-1)
+        errG = criterion(outputD_fake, real_labels)
+        errG.backward()
+        D_G_z2 = output.mean().item()
+        optimizerG.step() # G업데이트
+
+        if i % 50 == 0:
+            print('[%d/%d][%d/%d]\tLoss_D: %.4f\tLoss_G: %.4f\tD(x): %.4f\tD(G(z)): %.4f / %.4f'
+                  % (epoch, epochs, i, len(data_loader),
+                     errD.item(), errG.item(), D_x, D_G_z1, D_G_z2))
+
+        G_losses.append(errG.item())
+        D_losses.append(errD.item())
+
+        # if (iters % 500 == 0) or ((epoch == epochs - 1) and (i == len(data_loader) - 1)):
+        #     with torch.no_grad():
+        #         fake = netG(fixed_noise).detach().cpu()
+        #     img_list.append(make_grid(fake, padding=2, normalize=True))
+
+        iters += 1
 
         #링크: https://tutorials.pytorch.kr/beginner/dcgan_faces_tutorial.html#id13
+
+k=10
