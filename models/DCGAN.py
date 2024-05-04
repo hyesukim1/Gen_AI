@@ -190,4 +190,6 @@ for epoch in range(epochs):
 
         #링크: https://tutorials.pytorch.kr/beginner/dcgan_faces_tutorial.html#id13
 
+
+
 k=10
