@@ -1,0 +1,12 @@
+{
+  "multiprocess_core": 10,
+  "original_data_path" : [
+    ["/media/hskim/data/Mill_DS", "true_false"]
+  ],
+  "data_path" : "/media/hskim/data/Mill_DS",
+  "grid_size": 64,
+  "grid_count": [3, 3],
+  "grid_out_count": [0, 0],
+  "grid_padding": [0, 0],
+  "grid_stride": [2, 2]
+}

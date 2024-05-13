@@ -1,0 +1,4 @@
+{
+  "multiprocess_core": 10,
+  "data_split" : 0.95
+}

@@ -1,0 +1,11 @@
+{
+  "pre_define": "predefined_classes.txt",
+  "data_extract" : true,
+  "data_config": "data_config_16oz_33_00_00_1",
+  "data_split" : true,
+  "split_config": "split_config_1",
+  "model_config" : "model_config_side",
+  "metric_config" : "metric_config_1",
+  "camera_config" : "camera_config_33_00_00_train",
+  "model_save_path": "D:/dataset/image/Ecohabit/model/20240126_side_2"
+}
