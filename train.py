@@ -49,6 +49,7 @@ if __name__ == "__main__":
     elif model_config['model_type'] == 'vae':
         model = VAE().to(device)
 
+
     # set loss
     optimizer = torch.optim.Adam(model.parameters(), model_config['lr'])
 

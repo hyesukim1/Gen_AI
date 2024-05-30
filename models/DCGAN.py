@@ -63,6 +63,12 @@ class Discriminator(nn.Module):
     def forward(self, input):
         return self.main(input)
 
+class DCGAN():
+    def __init__(self):
+        self.G = Generator()
+        self.D = Discriminator()
+
+
 class CustomDataset(Dataset):
 
     def __init__(self, data_dir, transform=None):
