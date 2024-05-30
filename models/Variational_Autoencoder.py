@@ -21,7 +21,6 @@ class VAE(nn.Module):
     def __init__(self, h_dim=128*16*16, z_dim=64):
         super(VAE, self).__init__()
 
-
         self.encoder = nn.Sequential(
             nn.Conv2d(1, 32, kernel_size=3, stride=2, padding=1),
             nn.BatchNorm2d(32),

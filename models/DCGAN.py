@@ -161,9 +161,11 @@ for epoch in range(epochs):
         errD_fake.backward()
         D_G_z1 = output.mean().item()
 
+
         errD = errD_real+errD_fake
         optimizerD.step()
 
+        print('errD_real::', errD_real, 'errD_fake::', errD_fake, 'errD::', errD)
         ### G 신경망 업데이트
         netG.zero_grad()
 
