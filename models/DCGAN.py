@@ -111,7 +111,8 @@ transform = transforms.Compose([transforms.Resize((128, 128)),
                                 transforms.ToTensor()
                                 ])
 
-pth = '/media/hskim/data/practice_data/'#'D:/data/kaggle/dataset'
+# pth = '/media/hskim/data/practice_data/'
+pth = 'D:/data/kaggle/dataset'
 
 data = CustomDataset(pth, transform=transform)
 data_loader = DataLoader(data, batch_size=64, shuffle=True)
