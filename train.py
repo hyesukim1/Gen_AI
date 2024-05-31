@@ -21,19 +21,15 @@ if __name__ == "__main__":
     # 데이터, 학습에 필요한 설정 파일 읽어오기
     main_conf = read_config('main.json')
 
-
     # 학습 설정
     epochs = main_conf["model_config"]["epoch"]
     batch_size = main_conf["model_config"]['batch_size']
 
-    # gpu 사용 여부
-    # device = torch.device("cuda:0" if main_conf["model_config"] else "cpu")
-    # print("Using Device1:", device)
-
     # model_config에서 channel이 3이면 color, 1이면 gray
+    image_size = main_conf["model_config"]["image_size"]
+    num_channels = main_conf["model_config"]["channel"]
     transform = transforms.Compose([
         transforms.Resize((main_conf["model_config"]["image_size"], main_conf["model_config"]["image_size"])),
-        # transforms.Grayscale(num_output_channels=1) if main_conf["model_config"]["channel"] == 1 else lambda x: x,
         transforms.ToTensor()
     ])
 
@@ -41,21 +37,6 @@ if __name__ == "__main__":
     path = main_conf["data_config"]["data_path"]
     data = CustomDataset(path, transform=transform)
     data_loader = DataLoader(data, batch_size=batch_size, shuffle=True)
-
-    # # load model
-    # if main_conf["model_config"]['model_type'] == 'autoencoder':
-    #     model = Autoencoder().to(device)
-    # elif main_conf["model_config"]['model_type'] == 'vae':
-    #     model = VAE().to(device)
-    # elif main_conf["model_config"]['model_type'] == 'dcgan':
-    #     model = DCGAN().to(device)
-
-    # set loss
-    # optimizer = torch.optim.Adam(model.parameters(), main_conf["model_config"]['lr'])
-
-    # train
-    # 이미지 그릴건지, 학습 모델 저장할 건지, 학습 히스토리 저장할건지
-    # train(model, model_config['model_type'], data_loader, loss_type, optimizer, device, epochs,  model_config["image_size"], data_config["save_path"][0], data_config["save_path"][1])
 
     # train
     trainer = Trainer(main_conf["model_config"]['model_type'],  main_conf["model_config"]['lr'], main_conf["model_config"], main_conf["model_config"]['loss_type'], main_conf["model_config"]["image_size"], main_conf["data_config"]["save_path"][0], main_conf["data_config"]["save_path"][1])

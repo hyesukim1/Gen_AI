@@ -65,69 +65,89 @@ class Trainer:
         '''
         학습에 사용하는 걸 넣는게 아니라 data_loader에서 따로 뺀걸 넣어야함
         그래서 data.dataset[i].unsqueeze(0)을 to(device)로 넘겨줘야댐
-
         '''
 
         # 원래 이미지 5개 불러오기
         # view_data = [data.dataset[i].view(1, 1, -1).to(self.device) for i in range(5)]
-        view_data = [data.dataset[i].unsqueeze(0).to(self.device) for i in range(5)]
+        # view_data = [data.dataset[i].unsqueeze(0).to(self.device) for i in range(5)]
+        data_iter = iter(data)
+        view_data = next(data_iter) # torch.Size([8, 3, 512, 512]) 배치만큼 가져옴
+
+        f, a = plt.subplots(2, 5, figsize=(14, 12))
 
         ori_imgs = []
         model_imgs = []
-        for vd in view_data:
-            img = np.reshape(vd.to("cpu").data.numpy(), (512, 512, 3))
-            ori_imgs.append(img)
+        for i in range(5):
+            img = np.transpose(view_data[i].numpy(), (1, 2, 0))
+            # ori_imgs.append(img)
+            a[0][i].imshow(img)
+            a[0][i].set_xticks(());
+            a[0][i].set_yticks(())
+
             # 모델 통과한 이미지 5개 불러오기
             if model_type == 'autoencoder':
-                _, output = model(vd) # torch.Size([1, 1, 16384])
+                output = model(view_data.to(device)) # torch.Size([8, 3, 512, 512]) .to("cuda")
+                view_out = output[i].to("cpu").detach().numpy()
+                out = np.transpose(view_out, (1, 2, 0))
+
+                # model_imgs.append(out)
+                a[1][i].imshow(out)
+                a[1][i].set_xticks(());
+                a[1][i].set_yticks(())
+
             elif model_type == 'vae':
                 output, _, _ = model(img)
-
+                out = np.transpose(output[i].numpy(), (1, 2, 0))
+                model_imgs.append(out)
+                a[1][i].imshow(out)
+                a[1][i].set_xticks(());
+                a[1][i].set_yticks(())
+        plt.show()
         # 이미지 쇼 함수 호출
         # show_images
 
         # self.view_train_data(self.model_type, data_loader, self.img_size, self.device, model)
 
-        if model_type == 'autoencoder':
-            view_data = [data.dataset[i].view(-1, 1, image_size ** 2).to(device) for i in range(5)]  # view는 기존의 메모리 공간을 공유하며 stride 크기만 변경하여 보여주기만 다르게 함
-
-            f, a = plt.subplots(2, self.data_num, figsize=(self.data_num, 2))
-
-            for i, x in enumerate(view_data):
-                img = np.reshape(view_data[i].to("cpu").data.numpy(), (image_size, image_size))
-                a[0][i].imshow(img, cmap='gray')
-                a[0][i].set_xticks(());
-                a[0][i].set_yticks(())
-
-                if model_type == 'autoencoder':
-                    _, output = model(x)
-                elif model_type == 'vae':
-                    output, _, _ = model(x)
-
-                img_de = np.reshape(output.to("cpu").data.numpy(), (image_size, image_size))
-                img_de = np.clip(img_de, 0, 1)
-
-                a[1][i].imshow(img_de, cmap='gray')
-                a[1][i].set_xticks(());
-                a[1][i].set_yticks(())
-
-        elif model_type == 'vae':
-            view_data = [data.dataset[i].unsqueeze(0).to(device) for i in range(5)]
-            f, a = plt.subplots(2, self.data_num, figsize=(self.data_num, 2))
-
-            for i in range(5):
-                img = np.reshape(view_data[i].to("cpu").data.numpy(), (128, 128))
-                a[0][i].imshow(img, cmap='gray')
-                a[0][i].set_xticks(());
-                a[0][i].set_yticks(())
-
-            for ind, i in enumerate(view_data):
-                data_de, _, _ = model(i)
-                img = np.reshape(data_de.to("cpu").data.numpy(), (128, 128))
-                a[1][ind].imshow(img, cmap='gray')
-                a[1][ind].set_xticks(());
-                a[1][ind].set_yticks(())
-        plt.show()
+        # if model_type == 'autoencoder':
+        #     view_data = [data.dataset[i].view(-1, 1, image_size ** 2).to(device) for i in range(5)]  # view는 기존의 메모리 공간을 공유하며 stride 크기만 변경하여 보여주기만 다르게 함
+        #
+        #     f, a = plt.subplots(2, self.data_num, figsize=(self.data_num, 2))
+        #
+        #     for i, x in enumerate(view_data):
+        #         img = np.reshape(view_data[i].to("cpu").data.numpy(), (image_size, image_size))
+        #         a[0][i].imshow(img, cmap='gray')
+        #         a[0][i].set_xticks(());
+        #         a[0][i].set_yticks(())
+        #
+        #         if model_type == 'autoencoder':
+        #             _, output = model(x)
+        #         elif model_type == 'vae':
+        #             output, _, _ = model(x)
+        #
+        #         img_de = np.reshape(output.to("cpu").data.numpy(), (image_size, image_size))
+        #         img_de = np.clip(img_de, 0, 1)
+        #
+        #         a[1][i].imshow(img_de, cmap='gray')
+        #         a[1][i].set_xticks(());
+        #         a[1][i].set_yticks(())
+        #
+        # elif model_type == 'vae':
+        #     view_data = [data.dataset[i].unsqueeze(0).to(device) for i in range(5)]
+        #     f, a = plt.subplots(2, self.data_num, figsize=(self.data_num, 2))
+        #
+        #     for i in range(5):
+        #         img = np.reshape(view_data[i].to("cpu").data.numpy(), (128, 128))
+        #         a[0][i].imshow(img, cmap='gray')
+        #         a[0][i].set_xticks(());
+        #         a[0][i].set_yticks(())
+        #
+        #     for ind, i in enumerate(view_data):
+        #         data_de, _, _ = model(i)
+        #         img = np.reshape(data_de.to("cpu").data.numpy(), (128, 128))
+        #         a[1][ind].imshow(img, cmap='gray')
+        #         a[1][ind].set_xticks(());
+        #         a[1][ind].set_yticks(())
+        # plt.show()
 
     def update_history(self, epoch, loss, bce=None, kld=None, mu=None, logvar=None):
         self.train_history['total_loss'].append(loss)
@@ -165,12 +185,12 @@ class Trainer:
                     '''
                     x_recon = model(x)
                     loss = self.comput_loss(x_recon, x)
-                elif self.model_type == 'vae':
-                    '''
-                    loss: custom loss(KLD + BCE)
-                    '''
-                    x_recon, mu, logvar = self.model(x)
-                    loss, bce, kld = self.custom_loss(x_recon, x, mu, logvar)
+                # elif self.model_type == 'vae':
+                #     '''
+                #     loss: custom loss(KLD + BCE)
+                #     '''
+                #     x_recon, mu, logvar = self.model(x)
+                #     loss, bce, kld = self.custom_loss(x_recon, x, mu, logvar)
 
                 loss.backward()
                 optimizer.step()
@@ -180,4 +200,4 @@ class Trainer:
             print(f'Epoch [{epoch}/{epochs}], Loss: {epoch_loss:.4f}')
             self.update_history(epoch, epoch_loss)
             self.view_train_data(self.model_type, data_loader, self.img_size, self.device, model)
-            torch.save(self.model.state_dict(), f'{self.model_save_path}/epoch_{epoch}.h5')
+            # torch.save(self.model.state_dict(), f'{self.model_save_path}/epoch_{epoch}.h5')
