@@ -1,0 +1,19 @@
+{
+  "data_config" : {
+    "data_path": "/media/hskim/data/practice_data/",
+    "save_path": [
+      "./result/history/",
+      "./result/model_result/"
+    ]
+  },
+  "model_config" : {
+  "model_type": "autoencoder",
+  "loss_type": "mse",
+  "epoch": 300,
+  "batch_size": 8,
+  "use_gpu": true,
+  "image_size": 512,
+  "channel": 3,
+  "lr": 0.005
+    }
+}

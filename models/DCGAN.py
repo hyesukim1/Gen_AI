@@ -63,29 +63,35 @@ class Discriminator(nn.Module):
     def forward(self, input):
         return self.main(input)
 
-class DCGAN():
+class DCGAN(nn.Module):
     def __init__(self):
+        super(DCGAN, self).__init__()
         self.G = Generator()
         self.D = Discriminator()
 
+    def forward(self, z):
+        generated_image = self.G(z)
+        validity = self.D(generated_image)
+        return generated_image, validity
 
-class CustomDataset(Dataset):
-
-    def __init__(self, data_dir, transform=None):
-        self.data_dir = data_dir
-        self.image_paths = glob(os.path.join(data_dir, '*/*.png'))
-        self.class_names = os.listdir(self.data_dir)
-        self.transform = transform
-
-    def __len__(self):
-        return len(self.image_paths)
-
-    def __getitem__(self, idx):
-        image_path = self.image_paths[idx]
-        img = Image.open(image_path)
-        if self.transform:
-            img = self.transform(img)
-        return img
+'''
+# class CustomDataset(Dataset):
+# 
+#     def __init__(self, data_dir, transform=None):
+#         self.data_dir = data_dir
+#         self.image_paths = glob(os.path.join(data_dir, '*/*.png'))
+#         self.class_names = os.listdir(self.data_dir)
+#         self.transform = transform
+# 
+#     def __len__(self):
+#         return len(self.image_paths)
+# 
+#     def __getitem__(self, idx):
+#         image_path = self.image_paths[idx]
+#         img = Image.open(image_path)
+#         if self.transform:
+#             img = self.transform(img)
+#         return img
 
 device = torch.device("cuda:0" if True else "cpu")
 print("Using Device:", device)
@@ -100,17 +106,17 @@ criterion = nn.BCELoss()
 optimizerD = optim.Adam(netD.parameters(), lr=0.005)
 optimizerG = optim.Adam(netG.parameters(), lr=0.005)
 
-'''
-학습
-1. Discriminator 학습
-- 입력이 진짜인지 가까인지 판별하는 것 
-- 진짜 데이터 배치를 netD에 통과 시킴 > 출력값으로 로스 계산 및 역전파 > 가짜 데이터 배치를 netD에 통과 시킴 > 출력값으로 로스 계산 및 역전파
 
-2. Generator 학습
-- log(D(G(z)))를 최대화하는 방식으로 바꿔서 학습
-- 구분자를 이용해 생성자의 출력값 판별 후 진짜 라벨값을 기용해 G의 손실값값을 구해줌 => 손실값으로 변화도를 구하고 옵티마이저를 이용해 G의 가중치를 업데이트 시켜줌 
-'''
-
+# 학습
+# 1. Discriminator 학습
+# - 입력이 진짜인지 가까인지 판별하는 것 
+# - 진짜 데이터 배치를 netD에 통과 시킴 > 출력값으로 로스 계산 및 역전파 > 가짜 데이터 배치를 netD에 통과 시킴 > 출력값으로 로스 계산 및 역전파
+# 
+# 2. Generator 학습
+# - log(D(G(z)))를 최대화하는 방식으로 바꿔서 학습
+# - 구분자를 이용해 생성자의 출력값 판별 후 진짜 라벨값을 기용해 G의 손실값값을 구해줌 => 손실값으로 변화도를 구하고 옵티마이저를 이용해 G의 가중치를 업데이트 시켜줌 
+# 
+# 
 
 transform = transforms.Compose([transforms.Resize((128, 128)),
                                 transforms.Grayscale(num_output_channels=1),
@@ -200,5 +206,5 @@ for epoch in range(epochs):
         #링크: https://tutorials.pytorch.kr/beginner/dcgan_faces_tutorial.html#id13
 
 
-
+'''
 k=10

@@ -1,12 +1,13 @@
-from torch import nn
+# 파이토치 라이브러리 임포트
+import torch
 from torch.utils.data import DataLoader
 from torchvision import transforms
 
-from models.Autoencoder import Autoencoder
-from models.Variational_Autoencoder import VAE
-from utils.data_utils import CustomDataset
-from utils.config_utils import ConfigManager
-from utils.model_utils import * # 얘는 클래스없이 진행한 것
+
+
+# 유틸리티 모듈 임포트
+from utils.data_utils import *
+from utils.main_utils import *
 from utils.train_utils import *
 
 
@@ -18,47 +19,46 @@ if __name__ == "__main__":
     '''
 
     # 데이터, 학습에 필요한 설정 파일 읽어오기
-    config_manager = ConfigManager('./config/main.json')
-    data_config, model_config = config_manager.check_list_of_config()
+    main_conf = read_config('main.json')
+
 
     # 학습 설정
-    epochs = model_config["epoch"]
-    batch_size = model_config['batch_size']
+    epochs = main_conf["model_config"]["epoch"]
+    batch_size = main_conf["model_config"]['batch_size']
 
     # gpu 사용 여부
-    device = torch.device("cuda:0" if model_config['use_gpu'] else "cpu")
-    print("Using Device:", device)
+    # device = torch.device("cuda:0" if main_conf["model_config"] else "cpu")
+    # print("Using Device1:", device)
 
     # model_config에서 channel이 3이면 color, 1이면 gray
     transform = transforms.Compose([
-        transforms.Resize((model_config["image_size"], model_config["image_size"])),
-        transforms.Grayscale(num_output_channels=1) if model_config["channel"] == 1 else lambda x: x,
+        transforms.Resize((main_conf["model_config"]["image_size"], main_conf["model_config"]["image_size"])),
+        # transforms.Grayscale(num_output_channels=1) if main_conf["model_config"]["channel"] == 1 else lambda x: x,
         transforms.ToTensor()
     ])
 
     # load dataset
-    path = data_config['data_path']
+    path = main_conf["data_config"]["data_path"]
     data = CustomDataset(path, transform=transform)
     data_loader = DataLoader(data, batch_size=batch_size, shuffle=True)
 
-
-    # load model
-    if model_config['model_type'] == 'autoencoder':
-        model = Autoencoder().to(device)
-
-    elif model_config['model_type'] == 'vae':
-        model = VAE().to(device)
-
+    # # load model
+    # if main_conf["model_config"]['model_type'] == 'autoencoder':
+    #     model = Autoencoder().to(device)
+    # elif main_conf["model_config"]['model_type'] == 'vae':
+    #     model = VAE().to(device)
+    # elif main_conf["model_config"]['model_type'] == 'dcgan':
+    #     model = DCGAN().to(device)
 
     # set loss
-    optimizer = torch.optim.Adam(model.parameters(), model_config['lr'])
+    # optimizer = torch.optim.Adam(model.parameters(), main_conf["model_config"]['lr'])
 
     # train
     # 이미지 그릴건지, 학습 모델 저장할 건지, 학습 히스토리 저장할건지
     # train(model, model_config['model_type'], data_loader, loss_type, optimizer, device, epochs,  model_config["image_size"], data_config["save_path"][0], data_config["save_path"][1])
 
     # train
-    trainer = Trainer(model, model_config['model_type'], optimizer, device, model_config['loss_type'], model_config["image_size"], data_config["save_path"][0], data_config["save_path"][0])
+    trainer = Trainer(main_conf["model_config"]['model_type'],  main_conf["model_config"]['lr'], main_conf["model_config"], main_conf["model_config"]['loss_type'], main_conf["model_config"]["image_size"], main_conf["data_config"]["save_path"][0], main_conf["data_config"]["save_path"][1])
     trainer.train(data_loader, epochs)
 
     k=10

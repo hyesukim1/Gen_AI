@@ -1,5 +1,6 @@
 import json
 
+# 안써도 될 것 같음
 class ConfigManager():
     """ 설정 관리 클래스 """
 

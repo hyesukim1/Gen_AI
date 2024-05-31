@@ -3,12 +3,18 @@ import numpy as np
 import matplotlib.pyplot as plt
 from torch.nn import functional as F
 
+# 모델 모듈 임포트
+from Gen_AI.models.Autoencoder import Autoencoder
+from Gen_AI.models.Variational_Autoencoder import VAE
+from Gen_AI.models.DCGAN import DCGAN
+
+from Gen_AI.utils.main_utils import *
+
 class Trainer:
-    def __init__(self, model, model_type, optimizer, device, loss_type, img_size, history_save_path, model_save_path):
-        self.model = model
+    def __init__(self, model_type, learning_rate, device, loss_type, img_size, history_save_path, model_save_path):
         self.model_type = model_type
-        self.optimizer = optimizer
-        self.device = device
+        self.learning_rate = learning_rate
+        self.device = torch.device("cuda:0" if device else "cpu")
         self.loss_type = loss_type
         self.img_size = img_size
         self.history_save_path = history_save_path
@@ -23,6 +29,21 @@ class Trainer:
             'logvar_range_min': [],
             'logvar_range_max': []
         }
+
+    def model_load(self):
+        # print("Using Device1:", self.device)
+        if self.model_type == 'autoencoder':
+            model = Autoencoder().to(self.device)
+        elif self.model_type == 'vae':
+            model = VAE().to(self.device)
+        elif self.model_type == 'dcgan':
+            model = DCGAN().to(self.device)
+        return model
+
+    def set_optimizer(self, model):
+        optimizer = torch.optim.Adam(model.parameters(), self.learning_rate)
+        return optimizer
+
     def custom_loss(self, recon_x, x, mu, logvar):
         BCE = F.binary_cross_entropy(recon_x, x, reduction='sum')
         KLD = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
@@ -35,14 +56,40 @@ class Trainer:
             return F.mse_loss(recon_x, x, reduction='sum')
         elif self.loss_type == 'cross_entropy':
             return F.cross_entropy(recon_x, x)
+        elif self.loss_type == 'bce':
+            return F.binary_cross_entropy(recon_x, x, reduction='sum')
         else:
             raise ValueError("Unsupported loss function")
 
-    def view_data(self, model_type, data, image_size, device, model):
+    def view_train_data(self, model_type, data, image_size, device, model):
+        '''
+        학습에 사용하는 걸 넣는게 아니라 data_loader에서 따로 뺀걸 넣어야함
+        그래서 data.dataset[i].unsqueeze(0)을 to(device)로 넘겨줘야댐
+
+        '''
+
+        # 원래 이미지 5개 불러오기
+        # view_data = [data.dataset[i].view(1, 1, -1).to(self.device) for i in range(5)]
+        view_data = [data.dataset[i].unsqueeze(0).to(self.device) for i in range(5)]
+
+        ori_imgs = []
+        model_imgs = []
+        for vd in view_data:
+            img = np.reshape(vd.to("cpu").data.numpy(), (512, 512, 3))
+            ori_imgs.append(img)
+            # 모델 통과한 이미지 5개 불러오기
+            if model_type == 'autoencoder':
+                _, output = model(vd) # torch.Size([1, 1, 16384])
+            elif model_type == 'vae':
+                output, _, _ = model(img)
+
+        # 이미지 쇼 함수 호출
+        # show_images
+
+        # self.view_train_data(self.model_type, data_loader, self.img_size, self.device, model)
 
         if model_type == 'autoencoder':
-            view_data = [data.dataset[i].view(-1, 1, image_size ** 2).to(device) for i in
-                         range(5)]  # view는 기존의 메모리 공간을 공유하며 stride 크기만 변경하여 보여주기만 다르게 함
+            view_data = [data.dataset[i].view(-1, 1, image_size ** 2).to(device) for i in range(5)]  # view는 기존의 메모리 공간을 공유하며 stride 크기만 변경하여 보여주기만 다르게 함
 
             f, a = plt.subplots(2, self.data_num, figsize=(self.data_num, 2))
 
@@ -101,27 +148,36 @@ class Trainer:
                        comments='')
 
     def train(self, data_loader, epochs):
+
+        model = self.model_load()
+        optimizer = self.set_optimizer(model)
+
         for epoch in range(1, epochs + 1):
-            self.model.train()
+            model.train()
             epoch_loss = 0.0
             for step, x in enumerate(data_loader):
-                x = x.to(self.device)
-                self.optimizer.zero_grad()
+                x = x.to(self.device) # 데이터를 같은 디바이스로 보내기
+                optimizer.zero_grad()
 
                 if self.model_type == 'autoencoder':
-                    _, x_recon = self.model(x)
-                    x_recon = x_recon.view(-1, 1, self.img_size, self.img_size)
+                    '''
+                    loss: MSE
+                    '''
+                    x_recon = model(x)
                     loss = self.comput_loss(x_recon, x)
                 elif self.model_type == 'vae':
+                    '''
+                    loss: custom loss(KLD + BCE)
+                    '''
                     x_recon, mu, logvar = self.model(x)
-                    loss, bce, kld = self.comput_loss(x_recon, x, mu, logvar)
+                    loss, bce, kld = self.custom_loss(x_recon, x, mu, logvar)
 
                 loss.backward()
-                self.optimizer.step()
+                optimizer.step()
                 epoch_loss += loss.item()
 
             epoch_loss /= len(data_loader)
             print(f'Epoch [{epoch}/{epochs}], Loss: {epoch_loss:.4f}')
             self.update_history(epoch, epoch_loss)
-            self.view_data(self.model_type, data_loader, self.img_size, self.device, self.model)
+            self.view_train_data(self.model_type, data_loader, self.img_size, self.device, model)
             torch.save(self.model.state_dict(), f'{self.model_save_path}/epoch_{epoch}.h5')

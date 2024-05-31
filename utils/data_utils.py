@@ -35,7 +35,7 @@ class CustomDataset(Dataset):
         :return: 변환된 이미지 데이터 샘플
         """
         image_path = self.image_paths[idx]
-        img = Image.open(image_path)
+        img = Image.open(image_path).convert("RGB")
         if self.transform:
             img = self.transform(img)
         return img

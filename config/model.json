@@ -1,9 +1,0 @@
-{"model_type": "autoencoder",
-  "loss_type": "mse",
-  "epoch": 300,
-  "batch_size": 64,
-  "use_gpu": true,
-  "image_size": 128,
-  "channel": 1,
-  "lr": 0.005
-}
