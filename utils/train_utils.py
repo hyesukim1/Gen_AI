@@ -162,7 +162,7 @@ class Trainer:
 
         if (epoch + 1) % 5 == 0 and self.history_save_path:
             np.savetxt(self.history_save_path + f'/train_history_epoch_{epoch + 1}.csv',
-                       np.column_stack((self.train_history.values())),
+                       np.column_stack((self.train_history.values())), #  dict_values([[618419.5012454711, 392277.55536684784, 347877.01619112317, 323456.92232789856], [], [], [], [], [], []])
                        delimiter=',',
                        header='total_loss,bce_loss,kld_loss,mu_range_min,mu_range_max,logvar_range_min,logvar_range_max',
                        comments='')
