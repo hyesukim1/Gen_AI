@@ -14,15 +14,15 @@ class Flatten(nn.Module):
 class UnFlatten(nn.Module):
     def forward(self, input):
         global BATCH_SIZE
-        return input.view(-1, 128, 16, 16).to(device)
+        return input.view(-1, 128, 64, 64).to(device)
 
 
 class VAE(nn.Module):
-    def __init__(self, h_dim=128*16*16, z_dim=64):
+    def __init__(self, h_dim=524288, z_dim=64):
         super(VAE, self).__init__()
 
         self.encoder = nn.Sequential(
-            nn.Conv2d(1, 32, kernel_size=3, stride=2, padding=1),
+            nn.Conv2d(3, 32, kernel_size=3, stride=2, padding=1),
             nn.BatchNorm2d(32),
             nn.ReLU(),
             nn.Conv2d(32, 64, kernel_size=3, stride=2, padding=1),
@@ -48,8 +48,8 @@ class VAE(nn.Module):
             nn.ConvTranspose2d(64, 32, kernel_size=3, stride=2, padding=1, output_padding=1),
             nn.BatchNorm2d(32),
             nn.ReLU(),
-            nn.ConvTranspose2d(32, 1, kernel_size=3, stride=2, padding=1, output_padding=1),
-            nn.BatchNorm2d(1),
+            nn.ConvTranspose2d(32, 3, kernel_size=3, stride=2, padding=1, output_padding=1),
+            nn.BatchNorm2d(3),
             nn.Sigmoid(),
         )
 

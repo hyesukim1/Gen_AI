@@ -1,29 +1,24 @@
 # README
 
-### config 
-:: 사용자가 변경 할 수 있는 요소를 json파일로 관리
-- data.json :: 데이터 관련 설정(데이터 경로, 데이터 형식)을 담은 파일
-  - data_path
-  - save_path
-- model.json :: 모델 하이퍼파라미터 및 학습 관련 설정을 담은 파일
-  - model_type
-  - loss_type
-  - epoch
-  - batch_size
-  - use_gpu
-  - image_size
-  - channel
-  - lr
-- main.json :: 각각의 컨피그를 연결해주는 설정 파일
-  - data_config
-  - model_config
-
-
+### main.json 
+  - data_config: 데이터 관련 설정(데이터 경로, 데이터 형식)을 담은 파일
+    - data_path
+    - save_path
+  - model_config: 모델 하이퍼파라미터 및 학습 관련 설정을 담은 파일
+    - model_type
+    - loss_type
+    - epoch
+    - batch_size
+    - use_gpu
+    - image_size
+    - channel
+    - lr
+    
 ### models 
 :: 여러 모델이 구현된 파일
-- Autoencoder.py => 구현 완료
-- Variational_Autoencoder.py => 구현 완료
-- DCGAN.py => 구현 중
+- Autoencoder.py
+- Variational_Autoencoder.py
+- DCGAN.py
 - Cycle_GAN.py
 - Style_GAN.py
 - Diffusion.py
@@ -57,23 +52,17 @@
 - torchaudio 0.12.1+cu113
 - torchvision 0.13.1+cu113
 
-(+) argparse, 도커 이미지
 
 ---
-정보
-- 데이터 정적으로 사용
-- 모델 학습 정적으로 사용 => 나중에 동적으로 변경할 것(how to 베이스 클래스에서 상속받아 각각의 모델 구현)
-
 사용방법 
 - config 폴더에 model.json에서  모델 타입, 로스 및 기타 파라미터 변경해서 사용
+- 배치 사이즈는 최소 5이상으로 왜냐면 학습 시 그림 그리는 걸 배치 5개 이상일때 그려짐
+
+추가 변경 예정 사항
+- 모델 학습 정적으로 사용 => 나중에 동적으로 변경할 것(how to 베이스 클래스에서 상속받아 각각의 모델 구현)
+- train.py 실행 시 학습 이미지 저장 여부, 학습 이미지 show 여부, 히스토리 저장 여부, show 여부로 수정
+- args로 관리할 지 고민
+- 이미지 배치에 따라 동적으로 그려지는걸로 수정
 
 ---
 기타
-- 텐서가 cpu상에 있으면 numpy 배열은 메모리 공간을 공유하므로 하나가 변하면 다른 하나도 변함
-ex. 
-a = torch.ones(1)
-b = a.numpy()
-a.add_(1) # _가 붙으면 inplace 연산임
-
-.detach() 연산기록 추적을 안하고 분리 시켜줌
-grad_fn: 미분값을 계산한 함수에 대한 정보 저장(어떤 함수에 대해서 backprop했는지)

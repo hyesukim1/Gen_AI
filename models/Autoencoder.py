@@ -111,4 +111,3 @@ class Autoencoder(nn.Module):
 #     output = model(i)
 #     print(output.shape)
 k=10
-# train

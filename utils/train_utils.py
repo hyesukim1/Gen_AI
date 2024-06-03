@@ -1,6 +1,10 @@
-import torch
+import os
+import datetime
 import numpy as np
 import matplotlib.pyplot as plt
+import pandas as pd
+
+import torch
 from torch.nn import functional as F
 
 # 모델 모듈 임포트
@@ -21,15 +25,14 @@ class Trainer:
         self.model_save_path = model_save_path
         self.data_num = 5
         self.train_history = {
-            'total_loss': [],
-            'bce_loss': [],
-            'kld_loss': [],
-            'mu_range_min': [],
-            'mu_range_max': [],
-            'logvar_range_min': [],
-            'logvar_range_max': []
+            'total_loss': []
+            # 'bce_loss': [],
+            # 'kld_loss': [],
+            # 'mu_range_min': [],
+            # 'mu_range_max': [],
+            # 'logvar_range_min': [],
+            # 'logvar_range_max': []
         }
-
     def model_load(self):
         # print("Using Device1:", self.device)
         if self.model_type == 'autoencoder':
@@ -61,7 +64,7 @@ class Trainer:
         else:
             raise ValueError("Unsupported loss function")
 
-    def view_train_data(self, model_type, data, image_size, device, model):
+    def view_train_data(self, model_type, data, device, model):
         '''
         학습에 사용하는 걸 넣는게 아니라 data_loader에서 따로 뺀걸 넣어야함
         그래서 data.dataset[i].unsqueeze(0)을 to(device)로 넘겨줘야댐
@@ -96,8 +99,8 @@ class Trainer:
                 a[1][i].set_yticks(())
 
             elif model_type == 'vae':
-                output, _, _ = model(img)
-                out = np.transpose(output[i].numpy(), (1, 2, 0))
+                output, _, _ = model(view_data.to(device))
+                out = np.transpose(output[i].cpu().detach().numpy(), (1, 2, 0))
                 model_imgs.append(out)
                 a[1][i].imshow(out)
                 a[1][i].set_xticks(());
@@ -149,25 +152,15 @@ class Trainer:
         #         a[1][ind].set_yticks(())
         # plt.show()
 
-    def update_history(self, epoch, loss, bce=None, kld=None, mu=None, logvar=None):
-        self.train_history['total_loss'].append(loss)
-        if bce is not None and kld is not None:
-            self.train_history['bce_loss'].append(bce)
-            self.train_history['kld_loss'].append(kld)
-        if mu is not None and logvar is not None:
-            self.train_history['mu_range_min'].append(torch.min(mu).item())
-            self.train_history['mu_range_max'].append(torch.max(mu).item())
-            self.train_history['logvar_range_min'].append(torch.min(logvar).item())
-            self.train_history['logvar_range_max'].append(torch.max(logvar).item())
-
-        if (epoch + 1) % 5 == 0 and self.history_save_path:
-            np.savetxt(self.history_save_path + f'/train_history_epoch_{epoch + 1}.csv',
-                       np.column_stack((self.train_history.values())), #  dict_values([[618419.5012454711, 392277.55536684784, 347877.01619112317, 323456.92232789856], [], [], [], [], [], []])
-                       delimiter=',',
-                       header='total_loss,bce_loss,kld_loss,mu_range_min,mu_range_max,logvar_range_min,logvar_range_max',
-                       comments='')
-
     def train(self, data_loader, epochs):
+        '''
+        에포크마다 저장하지 말고 한번에 저장하고 싶음
+        하나의 파일 생성해서 누적으로 담는 것
+        '''
+
+        now = datetime.datetime.now()
+        date_only = now.strftime("%Y-%m-%d")
+        fpath = self.history_save_path + f'{date_only}_train_history.csv'
 
         model = self.model_load()
         optimizer = self.set_optimizer(model)
@@ -185,19 +178,43 @@ class Trainer:
                     '''
                     x_recon = model(x)
                     loss = self.comput_loss(x_recon, x)
-                # elif self.model_type == 'vae':
-                #     '''
-                #     loss: custom loss(KLD + BCE)
-                #     '''
-                #     x_recon, mu, logvar = self.model(x)
-                #     loss, bce, kld = self.custom_loss(x_recon, x, mu, logvar)
+                elif self.model_type == 'vae':
+                    '''
+                    loss: custom loss(KLD + BCE)
+                    '''
+                    x_recon, mu, logvar = model(x)
+                    loss, bce, kld = self.comput_loss(x_recon, x, mu, logvar)
+
+                elif self.model_type == 'dcgan':
+                    '''
+                    loss: BCE
+                    '''
+                    x_recon = model(x)
+                    loss = self.comput_loss(x_recon, x)
 
                 loss.backward()
                 optimizer.step()
                 epoch_loss += loss.item()
 
+            # 에포크 loss header 출력
             epoch_loss /= len(data_loader)
             print(f'Epoch [{epoch}/{epochs}], Loss: {epoch_loss:.4f}')
-            self.update_history(epoch, epoch_loss)
-            self.view_train_data(self.model_type, data_loader, self.img_size, self.device, model)
+
+            # elif self.model_type == 'vae':
+            #     header = 'total_loss,bce_loss,kld_loss,mu_range_min,mu_range_max,logvar_range_min,logvar_range_max'
+            #     self.train_history['total_loss'].append(loss)
+            #     if bce is not None and kld is not None:
+            #         self.train_history['bce_loss'].append(bce)
+            #         self.train_history['kld_loss'].append(kld)
+            #     if mu is not None and logvar is not None:
+            #         self.train_history['mu_range_min'].append(torch.min(mu).item())
+            #         self.train_history['mu_range_max'].append(torch.max(mu).item())
+            #         self.train_history['logvar_range_min'].append(torch.min(logvar).item())
+            #         self.train_history['logvar_range_max'].append(torch.max(logvar).item())
+
+            self.view_train_data(self.model_type, data_loader, self.device, model)
             # torch.save(self.model.state_dict(), f'{self.model_save_path}/epoch_{epoch}.h5')
+
+            # history save
+            # np.savetxt(fpath, logs, delimiter=',', header=header, comments='')
+
