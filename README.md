@@ -18,10 +18,6 @@
 :: 여러 모델이 구현된 파일
 - Autoencoder.py
 - Variational_Autoencoder.py
-- DCGAN.py
-- Cycle_GAN.py
-- Style_GAN.py
-- Diffusion.py
 
 ### result 
 :: 학습 결과물을 저장하는 폴더
